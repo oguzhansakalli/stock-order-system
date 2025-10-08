@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stockorder_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: Admin123!
+      POSTGRES_DB: StockOrderDB
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - stockorder_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: stockorder_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: Admin123!
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - stockorder_network
+
+volumes:
+  postgres_data:
+
+networks:
+  stockorder_network:
+    driver: bridge
