@@ -1,4 +1,5 @@
 ﻿using Inventory.Domain.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Application.Abstractions;
 
 namespace Inventory.Application.Products.Commands.UpdateStock
@@ -7,7 +8,7 @@ namespace Inventory.Application.Products.Commands.UpdateStock
     {
         private readonly IProductRepository _repository;
         private readonly IUnitOfWork _unitOfWork;
-        public UpdateStockCommandHandler(IProductRepository repository, IUnitOfWork unitOfWork)
+        public UpdateStockCommandHandler(IProductRepository repository, [FromKeyedServices("Inventory")] IUnitOfWork unitOfWork)
         {
             _repository = repository;
             _unitOfWork = unitOfWork;

@@ -1,6 +1,7 @@
 ﻿using Inventory.Domain.Entities;
 using Inventory.Domain.Repositories;
 using Inventory.Domain.ValueObjects;
+using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Application.Abstractions;
 
 namespace Inventory.Application.Products.Commands.CreateProduct
@@ -9,12 +10,15 @@ namespace Inventory.Application.Products.Commands.CreateProduct
     {
         private readonly IProductRepository _repository;
         private readonly ITenantProvider _tenantProvider;
+        private readonly IUnitOfWork _unitOfWork;
 
         public CreateProductCommandHandler(
             IProductRepository repository,
+            [FromKeyedServices("Inventory")] IUnitOfWork unitOfWork,
             ITenantProvider tenantProvider)
         {
             _repository = repository;
+            _unitOfWork = unitOfWork;
             _tenantProvider = tenantProvider;
         }
 
@@ -38,6 +42,7 @@ namespace Inventory.Application.Products.Commands.CreateProduct
                 );
 
                 await _repository.AddAsync(product, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 return Result<Guid>.Success(product.Id);
             }

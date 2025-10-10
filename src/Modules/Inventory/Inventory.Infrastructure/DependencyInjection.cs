@@ -40,8 +40,11 @@ namespace Inventory.Infrastructure
             // Register repositories
             services.AddScoped<IProductRepository, ProductRepository>();
 
-            // Register UnitOfWork (using DbContext)
-            services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<InventoryDbContext>());
+            // Register Keyed UnitOfWork
+            services.AddKeyedScoped<IUnitOfWork, InventoryDbContext>(
+                "Inventory",
+                (sp, key) => sp.GetRequiredService<InventoryDbContext>()
+            );
 
             return services;
         }

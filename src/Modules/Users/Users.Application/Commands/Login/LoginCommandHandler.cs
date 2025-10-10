@@ -1,4 +1,5 @@
-﻿using SharedKernel.Application.Abstractions;
+﻿using Microsoft.Extensions.DependencyInjection;
+using SharedKernel.Application.Abstractions;
 using Users.Application.Abstractions;
 using Users.Application.DTOs;
 using Users.Domain.Repositories;
@@ -16,8 +17,8 @@ namespace Users.Application.Commands.Login
         public LoginCommandHandler(
             IUserRepository userRepository, 
             IPasswordHasher passwordHasher, 
-            IJwtService jwtService, 
-            IUnitOfWork unitOfWork)
+            IJwtService jwtService,
+            [FromKeyedServices("Users")] IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;

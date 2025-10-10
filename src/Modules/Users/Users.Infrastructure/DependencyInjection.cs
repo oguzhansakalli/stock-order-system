@@ -39,8 +39,11 @@ namespace Users.Infrastructure
             // Register repositories
             services.AddScoped<IUserRepository, UserRepository>();
 
-            // Register UnitOfWork (using DbContext)
-            services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<UsersDbContext>());
+            // Register Keyed UnitOfWork for Users
+            services.AddKeyedScoped<IUnitOfWork, UsersDbContext>(
+                "Users",
+                (sp, key) => sp.GetRequiredService<UsersDbContext>()
+            );
 
             // Register services
             services.AddScoped<IPasswordHasher, PasswordHasher>();

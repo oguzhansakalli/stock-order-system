@@ -1,4 +1,5 @@
-﻿using SharedKernel.Application.Abstractions;
+﻿using Microsoft.Extensions.DependencyInjection;
+using SharedKernel.Application.Abstractions;
 using Users.Application.Abstractions;
 using Users.Application.DTOs;
 using Users.Domain.Entities;
@@ -19,7 +20,7 @@ namespace Users.Application.Commands.Register
             IUserRepository userRepository, 
             IPasswordHasher passwordHasher, 
             IJwtService jwtService, 
-            IUnitOfWork unitOfWork, 
+            [FromKeyedServices("Users")] IUnitOfWork unitOfWork, 
             ITenantProvider tenantProvider)
         {
             _userRepository = userRepository;
