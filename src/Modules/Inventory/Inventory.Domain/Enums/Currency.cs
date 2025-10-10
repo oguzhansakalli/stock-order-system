@@ -2,8 +2,8 @@
 {
     public enum Currency
     {
-        TRY = 1,
-        USD = 2,
-        EUR = 3
+        TRY = 10,
+        USD = 20,
+        EUR = 30
     }
 }
