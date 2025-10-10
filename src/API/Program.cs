@@ -1,4 +1,5 @@
 using Inventory.Infrastructure;
+using Users.Infrastructure;
 using SharedKernel.Application.Abstractions;
 using SharedKernel.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -19,6 +20,31 @@ builder.Services.AddSwaggerGen(options =>
         Title = "Stock Order System API",
         Version = "v1",
         Description = "Clean Architecture API with Modular Monolith"
+    });
+    // Add JWT authentication to Swagger
+    options.AddSecurityDefinition("Bearer", new()
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token."
+    });
+
+    options.AddSecurityRequirement(new()
+    {
+        {
+            new()
+            {
+                Reference = new()
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
 });
 
@@ -45,15 +71,19 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
     // Add Inventory.Application assembly
     cfg.RegisterServicesFromAssemblyContaining<Inventory.Application.Products.Commands.CreateProduct.CreateProductCommand>();
+    // Add Users.Application assembly
+    cfg.RegisterServicesFromAssemblyContaining<Users.Application.Commands.Register.RegisterCommand>();
 });
 
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Inventory.Application.Products.Commands.CreateProduct.CreateProductCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<Users.Application.Commands.Register.RegisterCommandValidator>();
 
 // Add Infrastructure modules
 builder.Services.AddInventoryInfrastructure(builder.Configuration);
+builder.Services.AddUsersInfrastructure(builder.Configuration);
 
-// Add JWT Authentication (will be configured later with Users module)
+// Add JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"] ?? "your-very-long-secret-key-min-32-chars-for-development-only";
 
@@ -66,13 +96,14 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ValidateIssuer = true,
         ValidIssuer = jwtSettings["Issuer"] ?? "StockOrderSystem",
+        ValidateAudience = true,
         ValidAudience = jwtSettings["Audience"] ?? "StockOrderSystemUsers",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
     };
 });
 
