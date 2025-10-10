@@ -2,6 +2,7 @@
 using Inventory.Domain.Repositories;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Threading;
 
 namespace Inventory.Infrastructure.Repositories
 {
@@ -15,16 +16,19 @@ namespace Inventory.Infrastructure.Repositories
         public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
         {
             await _context.Products.AddAsync(product, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         public void Update(Product product)
         {
             _context.Products.Update(product);
+            _context.SaveChangesAsync();
         }
 
         public void Delete(Product product)
         {
             _context.Products.Remove(product);
+            _context.SaveChangesAsync();
         }
 
         public async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)

@@ -8,16 +8,13 @@ namespace Inventory.Application.Products.Commands.CreateProduct
     public class CreateProductCommandHandler : ICommandHandler<CreateProductCommand, Guid>
     {
         private readonly IProductRepository _repository;
-        private readonly IUnitOfWork _unitOfWork;
         private readonly ITenantProvider _tenantProvider;
 
         public CreateProductCommandHandler(
             IProductRepository repository,
-            IUnitOfWork unitOfWork,
             ITenantProvider tenantProvider)
         {
             _repository = repository;
-            _unitOfWork = unitOfWork;
             _tenantProvider = tenantProvider;
         }
 
@@ -41,7 +38,6 @@ namespace Inventory.Application.Products.Commands.CreateProduct
                 );
 
                 await _repository.AddAsync(product, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 return Result<Guid>.Success(product.Id);
             }
