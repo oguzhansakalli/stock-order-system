@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using FluentValidation;
 using MediatR;
+using Orders.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,16 +72,20 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
     // Add Inventory.Application assembly
     cfg.RegisterServicesFromAssemblyContaining<Inventory.Application.Products.Commands.CreateProduct.CreateProductCommand>();
+    // Add Orders.Application assembly
+    cfg.RegisterServicesFromAssemblyContaining<Orders.Application.Commands.CreateOrder.CreateOrderCommand>();
     // Add Users.Application assembly
     cfg.RegisterServicesFromAssemblyContaining<Users.Application.Commands.Register.RegisterCommand>();
 });
 
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Inventory.Application.Products.Commands.CreateProduct.CreateProductCommandValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<Orders.Application.Commands.CreateOrder.CreateOrderCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<Users.Application.Commands.Register.RegisterCommandValidator>();
 
 // Add Infrastructure modules
 builder.Services.AddInventoryInfrastructure(builder.Configuration);
+builder.Services.AddOrdersInfrastructure(builder.Configuration);
 builder.Services.AddUsersInfrastructure(builder.Configuration);
 
 // Add JWT Authentication
