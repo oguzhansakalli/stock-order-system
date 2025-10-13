@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SharedKernel.Application.Abstractions;
 using SharedKernel.Domain.Entities;
+using SharedKernel.Domain.Events;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -9,9 +10,11 @@ namespace SharedKernel.Infrastructure.Persistence
     public abstract class BaseDbContext : DbContext, IUnitOfWork
     {
         private readonly Guid _currentTenantId;
-        protected BaseDbContext(DbContextOptions options, Guid currentTenantId) : base(options)
+        private readonly IDomainEventDispatcher? _domainEventDispatcher;
+        protected BaseDbContext(DbContextOptions options, Guid currentTenantId, IDomainEventDispatcher? domainEventDispatcher = null) : base(options)
         {
             _currentTenantId = currentTenantId;
+            _domainEventDispatcher = domainEventDispatcher;
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,7 +32,7 @@ namespace SharedKernel.Infrastructure.Persistence
                 }
             }
         }
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             // Set TenantId for new entities
             foreach (var entry in ChangeTracker.Entries<BaseEntity>())
@@ -47,7 +50,29 @@ namespace SharedKernel.Infrastructure.Persistence
                 }
             }
 
-            return base.SaveChangesAsync(cancellationToken);
+            // Collect domain events before saving
+            var entitiesWithEvents = ChangeTracker.Entries<BaseEntity>()
+                 .Where(e => e.Entity.DomainEvents.Any())
+                 .Select(e => e.Entity)
+                 .ToList();
+
+            var domainEvents = entitiesWithEvents
+                .SelectMany(e => e.DomainEvents)
+                .ToList();
+
+            // Clear domain events from entities
+            entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
+
+            // Save changes to database
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            // Dispatch domain events after successful save (if dispatcher is available)
+            if (_domainEventDispatcher != null && domainEvents.Any())
+            {
+                await _domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
+            }
+
+            return result;
         }
     }
 }

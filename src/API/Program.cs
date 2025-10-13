@@ -8,6 +8,7 @@ using System.Text;
 using FluentValidation;
 using MediatR;
 using Orders.Infrastructure;
+using SharedKernel.Infrastructure.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,14 +56,26 @@ builder.Services.AddHttpContextAccessor();
 // Register TenantProvider
 builder.Services.AddScoped<ITenantProvider, TenantProvider>();
 
+// Register DomainEventDispatcher
+builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+
+// Register OrderNotificationService
+builder.Services.AddScoped<Orders.Application.Services.IOrderNotificationService, API.Services.OrderNotificationService>();
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        //policy.AllowAnyOrigin()
+        //      .AllowAnyMethod()
+        //      .AllowAnyHeader();
+
+        // Use when SignalR enabled
+        policy.SetIsOriginAllowed(_ => true)  // permittion for all origins. TODO: change later
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -112,6 +125,9 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Add SignalR
+builder.Services.AddSignalR();
+
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -134,5 +150,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Add SignalR Hub mapping
+app.MapHub<API.Hubs.OrderHub>("/hubs/orders");
 
 app.Run();

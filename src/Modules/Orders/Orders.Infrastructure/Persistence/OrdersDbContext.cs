@@ -12,15 +12,16 @@ namespace Orders.Infrastructure.Persistence
         // Constructor for runtime
         public OrdersDbContext(
             DbContextOptions<OrdersDbContext> options,
-            ITenantProvider tenantProvider)
-            : base(options, tenantProvider.GetCurrentTenantId())
+            ITenantProvider tenantProvider,
+            IDomainEventDispatcher domainEventDispatcher)
+            : base(options, tenantProvider.GetCurrentTenantId(), domainEventDispatcher)
         {
             _tenantProvider = tenantProvider;
         }
 
         // Constructor for design-time (migrations)
         public OrdersDbContext(DbContextOptions<OrdersDbContext> options)
-            : base(options, Guid.Empty)
+            : base(options, Guid.Empty, null)
         {
         }
 
