@@ -7,6 +7,7 @@ using Orders.Application.DTOs;
 using Orders.Application.Queries.GetOrderById;
 using Orders.Application.Queries.GetOrders;
 using Orders.Application.Queries.GetOrdersByCustomer;
+using Orders.Application.Queries.GetOrderStatistics;
 using Orders.Application.Queries.GetOrdersWithFilters;
 using Orders.Domain.Enums;
 using System.Security.Claims;
@@ -179,6 +180,25 @@ namespace API.Controllers
                 return BadRequest(new { error = result.Error });
 
             return Ok(new { message = "Order cancelled successfully" });
+        }
+
+        /// <summary>
+        /// Get order statistics for dashboard
+        /// </summary>
+        [HttpGet("statistics")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetOrderStatistics(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            CancellationToken cancellationToken)
+        {
+            var query = new GetOrderStatisticsQuery(startDate, endDate);
+            var result = await _mediator.Send(query, cancellationToken);
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error });
+
+            return Ok(result.Value);
         }
     }
 }

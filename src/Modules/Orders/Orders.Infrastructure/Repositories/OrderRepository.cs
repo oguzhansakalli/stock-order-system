@@ -2,6 +2,7 @@
 using Orders.Domain.Entities;
 using Orders.Domain.Enums;
 using Orders.Domain.Repositories;
+using Orders.Infrastructure.DTOs;
 using Orders.Infrastructure.Persistence;
 
 namespace Orders.Infrastructure.Repositories
@@ -129,6 +130,99 @@ namespace Orders.Infrastructure.Repositories
         public void Delete(Order order)
         {
             _context.Orders.Remove(order);
+        }
+        // Statistics methods
+        public async Task<int> GetTotalOrdersCountAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Orders.CountAsync(cancellationToken);
+        }
+        public async Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Orders
+                .Where(o => o.Status != OrderStatus.Cancelled)
+                .SumAsync(o => o.TotalAmount, cancellationToken);
+        }
+        public async Task<Dictionary<OrderStatus, int>> GetOrderCountByStatusAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Orders
+                .GroupBy(o => o.Status)
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Status, x => x.Count, cancellationToken);
+        }
+        public async Task<int> GetOrdersCountByDateRangeAsync(
+            DateTime startDate,
+            DateTime endDate,
+            CancellationToken cancellationToken = default)
+        {
+            var startDateUtc = DateTime.SpecifyKind(startDate, DateTimeKind.Utc);
+            var endDateUtc = DateTime.SpecifyKind(endDate, DateTimeKind.Utc);
+
+            return await _context.Orders
+                .Where(o => o.CreatedAt >= startDateUtc && o.CreatedAt <= endDateUtc)
+                .CountAsync(cancellationToken);
+        }
+        public async Task<decimal> GetRevenueByDateRangeAsync(
+            DateTime startDate,
+            DateTime endDate,
+            CancellationToken cancellationToken = default)
+        {
+            var startDateUtc = DateTime.SpecifyKind(startDate, DateTimeKind.Utc);
+            var endDateUtc = DateTime.SpecifyKind(endDate, DateTimeKind.Utc);
+
+            return await _context.Orders
+                .Where(o => o.CreatedAt >= startDateUtc &&
+                            o.CreatedAt <= endDateUtc &&
+                            o.Status != OrderStatus.Cancelled)
+                .SumAsync(o => o.TotalAmount, cancellationToken);
+        }
+        public async Task<List<(Guid CustomerId, string CustomerName, int OrderCount, decimal TotalSpent)>> GetTopCustomersAsync(
+             int count,
+             CancellationToken cancellationToken = default)
+        {
+            var results = await _context.Orders
+                .Where(o => o.Status != OrderStatus.Cancelled)
+                .GroupBy(o => new { o.CustomerId, o.CustomerName })
+                .Select(g => new TopCustomerQueryResult
+                {
+                    CustomerId = g.Key.CustomerId,
+                    CustomerName = g.Key.CustomerName,
+                    OrderCount = g.Count(),
+                    TotalSpent = g.Sum(o => o.TotalAmount)
+                })
+                .OrderByDescending(x => x.TotalSpent)
+                .Take(count)
+                .ToListAsync(cancellationToken);
+
+            return results
+                .Select(x => (x.CustomerId, x.CustomerName, x.OrderCount, x.TotalSpent))
+                .ToList();
+        }
+
+        public async Task<List<(DateTime Date, int OrderCount, decimal Revenue)>> GetDailyRevenueAsync(
+            DateTime startDate,
+            DateTime endDate,
+            CancellationToken cancellationToken = default)
+        {
+            var startDateUtc = DateTime.SpecifyKind(startDate, DateTimeKind.Utc);
+            var endDateUtc = DateTime.SpecifyKind(endDate, DateTimeKind.Utc);
+
+            var results = await _context.Orders
+                .Where(o => o.CreatedAt >= startDateUtc &&
+                            o.CreatedAt <= endDateUtc &&
+                            o.Status != OrderStatus.Cancelled)
+                .GroupBy(o => o.CreatedAt.Date)
+                .Select(g => new DailyRevenueQueryResult
+                {
+                    Date = g.Key,
+                    OrderCount = g.Count(),
+                    Revenue = g.Sum(o => o.TotalAmount)
+                })
+                .OrderBy(x => x.Date)
+                .ToListAsync(cancellationToken);
+
+            return results
+                .Select(x => (x.Date, x.OrderCount, x.Revenue))
+                .ToList();
         }
         private static IQueryable<Order> ApplySorting(IQueryable<Order> query, string sortBy, string sortOrder)
         {

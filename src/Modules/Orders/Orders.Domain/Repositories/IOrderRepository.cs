@@ -30,5 +30,22 @@ namespace Orders.Domain.Repositories
         Task AddAsync(Order order, CancellationToken cancellationToken = default);
         void Update(Order order);
         void Delete(Order order);
+
+        // Statistics methods
+        Task<int> GetTotalOrdersCountAsync(CancellationToken cancellationToken = default);
+        Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default);
+        Task<Dictionary<OrderStatus, int>> GetOrderCountByStatusAsync(CancellationToken cancellationToken = default);
+
+        Task<int> GetOrdersCountByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
+        Task<decimal> GetRevenueByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default);
+
+        Task<List<(Guid CustomerId, string CustomerName, int OrderCount, decimal TotalSpent)>> GetTopCustomersAsync(
+            int count,
+            CancellationToken cancellationToken = default);
+
+        Task<List<(DateTime Date, int OrderCount, decimal Revenue)>> GetDailyRevenueAsync(
+            DateTime startDate,
+            DateTime endDate,
+            CancellationToken cancellationToken = default);
     }
 }
