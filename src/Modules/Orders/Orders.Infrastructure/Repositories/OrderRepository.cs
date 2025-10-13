@@ -59,6 +59,62 @@ namespace Orders.Infrastructure.Repositories
             return await _context.Orders
                 .AnyAsync(o => o.OrderNumber.Value == orderNumber, cancellationToken);
         }
+        // Advanced filtering with pagination
+        public async Task<(List<Order> Orders, int TotalCount)> GetOrdersWithFiltersAsync(
+            DateTime? startDate,
+            DateTime? endDate,
+            OrderStatus? status,
+            Guid? customerId,
+            string? orderNumber,
+            string? customerName,
+            decimal? minAmount,
+            decimal? maxAmount,
+            int pageNumber,
+            int pageSize,
+            string sortBy,
+            string sortOrder,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _context.Orders.AsQueryable();
+
+            // Apply filters
+            if (startDate.HasValue)
+                query = query.Where(o => o.CreatedAt >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(o => o.CreatedAt <= endDate.Value);
+
+            if (status.HasValue)
+                query = query.Where(o => o.Status == status.Value);
+
+            if (customerId.HasValue)
+                query = query.Where(o => o.CustomerId == customerId.Value);
+
+            if (!string.IsNullOrWhiteSpace(orderNumber))
+                query = query.Where(o => o.OrderNumber.Value.Contains(orderNumber));
+
+            if (!string.IsNullOrWhiteSpace(customerName))
+                query = query.Where(o => o.CustomerName.Contains(customerName));
+
+            if (minAmount.HasValue)
+                query = query.Where(o => o.TotalAmount >= minAmount.Value);
+
+            if (maxAmount.HasValue)
+                query = query.Where(o => o.TotalAmount <= maxAmount.Value);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            // Apply sorting
+            query = ApplySorting(query, sortBy, sortOrder);
+
+            // Apply pagination
+            var orders = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return (orders, totalCount);
+        }
 
         public async Task AddAsync(Order order, CancellationToken cancellationToken = default)
         {
@@ -73,6 +129,33 @@ namespace Orders.Infrastructure.Repositories
         public void Delete(Order order)
         {
             _context.Orders.Remove(order);
+        }
+        private static IQueryable<Order> ApplySorting(IQueryable<Order> query, string sortBy, string sortOrder)
+        {
+            var isDescending = sortOrder?.ToLower() == "desc";
+
+            return sortBy?.ToLower() switch
+            {
+                "ordernumber" => isDescending
+                    ? query.OrderByDescending(o => o.OrderNumber.Value)
+                    : query.OrderBy(o => o.OrderNumber.Value),
+
+                "totalamount" => isDescending
+                    ? query.OrderByDescending(o => o.TotalAmount)
+                    : query.OrderBy(o => o.TotalAmount),
+
+                "status" => isDescending
+                    ? query.OrderByDescending(o => o.Status)
+                    : query.OrderBy(o => o.Status),
+
+                "customername" => isDescending
+                    ? query.OrderByDescending(o => o.CustomerName)
+                    : query.OrderBy(o => o.CustomerName),
+
+                "createdat" or _ => isDescending
+                    ? query.OrderByDescending(o => o.CreatedAt)
+                    : query.OrderBy(o => o.CreatedAt)
+            };
         }
     }
 }

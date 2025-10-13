@@ -10,6 +10,9 @@ using MediatR;
 using Orders.Infrastructure;
 using SharedKernel.Infrastructure.Events;
 
+// PostgreSQL DateTime compatibility
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container

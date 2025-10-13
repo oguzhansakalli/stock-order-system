@@ -3,9 +3,12 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Orders.Application.Commands.CancelOrder;
+using Orders.Application.DTOs;
 using Orders.Application.Queries.GetOrderById;
 using Orders.Application.Queries.GetOrders;
 using Orders.Application.Queries.GetOrdersByCustomer;
+using Orders.Application.Queries.GetOrdersWithFilters;
+using Orders.Domain.Enums;
 using System.Security.Claims;
 
 namespace API.Controllers
@@ -33,6 +36,51 @@ namespace API.Controllers
         public async Task<IActionResult> GetOrders(CancellationToken cancellationToken)
         {
             var query = new GetOrdersQuery();
+            var result = await _mediator.Send(query, cancellationToken);
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error });
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get orders with filters and pagination
+        /// </summary>
+        [HttpGet("filter")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetOrdersWithFilters(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] OrderStatus? status,
+            [FromQuery] Guid? customerId,
+            [FromQuery] string? orderNumber,
+            [FromQuery] string? customerName,
+            [FromQuery] decimal? minAmount,
+            [FromQuery] decimal? maxAmount,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = "CreatedAt",
+            [FromQuery] string? sortOrder = "desc",
+            CancellationToken cancellationToken = default)
+        {
+            var filters = new OrderFilterParameters
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                Status = status,
+                CustomerId = customerId,
+                OrderNumber = orderNumber,
+                CustomerName = customerName,
+                MinAmount = minAmount,
+                MaxAmount = maxAmount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortOrder = sortOrder
+            };
+
+            var query = new GetOrdersWithFiltersQuery(filters);
             var result = await _mediator.Send(query, cancellationToken);
 
             if (result.IsFailure)
