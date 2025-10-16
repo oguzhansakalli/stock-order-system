@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AuthService } from "./auth-service";
 import { User, LoginRequest } from "@/types/auth";
-import { signalRService } from "../signalr/signalr-service";
 
 interface AuthContextType {
   user: User | null;
@@ -18,46 +17,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    console.log("🔵 AuthProvider: useEffect starting...");
+    if (initialized) return;
 
-    // Check if user is already logged in
-    const initAuth = async () => {
-      try {
-        console.log("🔵 Checking localStorage for user...");
-        const currentUser = AuthService.getUser();
-        const token = AuthService.getToken();
+    try {
+      const token = AuthService.getToken();
+      const currentUser = AuthService.getUser();
 
-        console.log("🔵 User from localStorage:", currentUser);
-        console.log("🔵 Token exists:", !!token);
-
-        if (currentUser && token) {
-          console.log("🔵 User found, setting user state...");
-          setUser(currentUser);
-
-          // Don't wait for SignalR in initial load
-          console.log("🔵 Connecting to SignalR in background...");
-          signalRService.connect(token).catch((error) => {
-            console.error("❌ SignalR connection failed:", error);
-          });
-        } else {
-          console.log("🔵 No user found in localStorage");
-        }
-      } catch (error) {
-        console.error("❌ Auth initialization error:", error);
-      } finally {
-        console.log("🔵 Setting isLoading to false");
-        setIsLoading(false);
+      if (token && currentUser && token.length > 100) {
+        setUser(currentUser);
+      } else {
+        setUser(null);
       }
-    };
-
-    initAuth();
-  }, []);
+    } catch (error) {
+      console.error("Auth initialization error:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+      setInitialized(true);
+    }
+  }, [initialized]);
 
   const login = async (credentials: LoginRequest) => {
     try {
-      console.log("🔵 Login attempt:", credentials.email);
       const response = await AuthService.login(credentials);
 
       const newUser: User = {
@@ -67,38 +51,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: response.user.role,
       };
 
-      console.log("✅ Login successful:", newUser);
       setUser(newUser);
-
-      // TODO: SignalR - Şimdilik devre dışı
-      // signalRService.connect(response.refreshToken).catch((error) => {
-      //   console.error('❌ SignalR connection failed:', error);
-      // });
     } catch (error) {
-      console.error("❌ Login error:", error);
+      console.error("Login error:", error);
       throw error;
     }
   };
 
   const logout = () => {
-    console.log("🔵 Logging out...");
-    signalRService.disconnect();
     AuthService.logout();
     setUser(null);
   };
 
-  console.log(
-    "🔵 AuthProvider render - isLoading:",
-    isLoading,
-    "isAuthenticated:",
-    !!user
-  );
+  const isAuthenticated = !!user;
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated,
         isLoading,
         login,
         logout,

@@ -7,15 +7,8 @@ import {
 } from "@/types/order";
 
 export class OrdersAPI {
-  private static baseUrl = "/orders";
+  private static baseUrl = "/Orders";
 
-  // Get all orders (simple)
-  static async getOrders(): Promise<Order[]> {
-    const response = await axiosClient.get<Order[]>(this.baseUrl);
-    return response.data;
-  }
-
-  // Get orders with filters and pagination
   static async getOrdersWithFilters(
     params: OrderFilterParams
   ): Promise<PagedResult<Order>> {
@@ -26,13 +19,16 @@ export class OrdersAPI {
     return response.data;
   }
 
-  // Get order by ID
+  static async getOrders(): Promise<Order[]> {
+    const response = await axiosClient.get<Order[]>(this.baseUrl);
+    return response.data;
+  }
+
   static async getOrderById(id: string): Promise<Order> {
     const response = await axiosClient.get<Order>(`${this.baseUrl}/${id}`);
     return response.data;
   }
 
-  // Get orders by customer
   static async getOrdersByCustomer(customerId: string): Promise<Order[]> {
     const response = await axiosClient.get<Order[]>(
       `${this.baseUrl}/customer/${customerId}`
@@ -40,7 +36,6 @@ export class OrdersAPI {
     return response.data;
   }
 
-  // Get order statistics
   static async getStatistics(
     startDate?: string,
     endDate?: string
@@ -56,7 +51,6 @@ export class OrdersAPI {
     return response.data;
   }
 
-  // Create order
   static async createOrder(data: {
     customerName: string;
     notes?: string;
@@ -69,7 +63,6 @@ export class OrdersAPI {
     return response.data;
   }
 
-  // Cancel order
   static async cancelOrder(id: string, reason?: string): Promise<void> {
     await axiosClient.patch(`${this.baseUrl}/${id}/cancel`, { reason });
   }

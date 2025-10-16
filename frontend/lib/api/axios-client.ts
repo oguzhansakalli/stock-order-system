@@ -17,13 +17,20 @@ const axiosClient: AxiosInstance = axios.create({
 // Request interceptor - Add auth token
 axiosClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("token");
-    if (token && config.headers) {
-      config.headers.Authorization = "Bearer ${token}";
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    if (token) {
+      if (!config.headers) {
+        config.headers = {} as any;
+      }
+      config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error: AxiosError) => {
+    console.error("Request error:", error);
     return Promise.reject(error);
   }
 );
@@ -33,9 +40,14 @@ axiosClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        if (!window.location.pathname.includes("/login")) {
+          window.location.href = "/login";
+        }
+      }
     }
     return Promise.reject(error);
   }
