@@ -54,6 +54,15 @@ export class SignalRService {
     }
   }
 
+  // Subscribe to OrderCreated event
+  onOrderCreated(callback: (data: any) => void): void {
+    if (!this.connection) {
+      console.warn("SignalR not connected");
+      return;
+    }
+    this.connection.on("OrderCreated", callback);
+  }
+
   // Subscribe to OrderStatusChanged event
   onOrderStatusChanged(callback: (data: any) => void): void {
     if (!this.connection) {
