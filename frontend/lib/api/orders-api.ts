@@ -4,6 +4,7 @@ import {
   OrderFilterParams,
   PagedResult,
   OrderStatistics,
+  CreateOrderRequest,
 } from "@/types/order";
 
 export class OrdersAPI {
@@ -51,15 +52,8 @@ export class OrdersAPI {
     return response.data;
   }
 
-  static async createOrder(data: {
-    customerName: string;
-    notes?: string;
-    items: Array<{
-      productId: string;
-      quantity: number;
-    }>;
-  }): Promise<Order> {
-    const response = await axiosClient.post<Order>(this.baseUrl, data);
+  static async createOrder(order: CreateOrderRequest): Promise<Order> {
+    const response = await axiosClient.post<Order>("/Orders", order);
     return response.data;
   }
 

@@ -94,3 +94,14 @@ export interface DailyRevenue {
   orderCount: number;
   revenue: number;
 }
+
+export interface CreateOrderRequest {
+  customerName: string;
+  notes?: string;
+  items: CreateOrderItemRequest[];
+}
+
+export interface CreateOrderItemRequest {
+  productId: string;
+  quantity: number;
+}
